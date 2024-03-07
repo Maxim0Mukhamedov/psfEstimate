@@ -1,0 +1,24 @@
+# CLion IDE specific files
+.idea/
+cmake-build-*
+# Build artifacts
+*.o
+*.obj
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+# CMake cache and generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+install_manifest.txt
+# Precompiled headers (if used)
+*.pch
+*.gch
+# Editor-specific temporary files
+*.swp
+*.swo
+# Coverage reports
+coverage/
