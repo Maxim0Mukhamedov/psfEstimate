@@ -8,6 +8,9 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+#include <implot.h>
+#include <imgui.h>
+
 const int cols = 20;
 const int rows = 20;
 const int colWidth = 10;
@@ -67,7 +70,7 @@ double calculatePlaneCos(const std::vector<int> &borderIndex) {
     return rows / std::sqrt((borderIndex[rows - 1] - borderIndex[0]) * (borderIndex[rows - 1] - borderIndex[0]) + rows * rows);
 }
 
-std::vector<std::vector<double>> calculateESFordinates(const std::vector<int> &borderIndex, const double &cosPlane) {
+std::vector<std::vector<double>> calculateESFabscisses(const std::vector<int> &borderIndex, const double &cosPlane) {
     std::vector<std::vector<double>> esfPointOrdinate(rows, std::vector<double>(cols));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -77,52 +80,61 @@ std::vector<std::vector<double>> calculateESFordinates(const std::vector<int> &b
     return esfPointOrdinate;
 }
 
-std::vector<std::pair<double, double>> calculateESFderivites(const std::vector<std::vector<double>>& X, std::vector<std::vector<double>> Y) {
-    std::vector<std::pair<double, double>> LSF;
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            LSF.push_back({X[i][j],Y[i][j]});
-        }
-    }
-    std::sort(LSF.begin(),LSF.end());
-    std::vector<std::pair<double,double>> trueLSF;
+std::vector<std::pair<double, double>> averageByAbscisse(std::vector<std::pair<double, double>> points) {
+    std::sort(points.begin(),points.end());
+    std::vector<std::pair<double,double>> averagePoints;
     double cnt = 0;
     double sum = 0;
     for (int i = 0; i < cols * rows - 1; i ++) {
-       if (LSF[i + 1].first == LSF[i].first) {
-           if (cnt == 0) {
-               cnt = 2;
-               sum = LSF[i].second;
-           } else {
-               cnt++;
-           }
-           sum += LSF[i + 1].second;
-       } else {
-           trueLSF.push_back({LSF[i].first,sum/cnt});
-           cnt = 0;
-           sum = 0;
-       }
+        if (points[i + 1].first == points[i].first) {
+            if (cnt == 0) {
+                cnt = 2;
+                sum = points[i].second;
+            } else {
+                cnt++;
+            }
+            sum += points[i + 1].second;
+        } else {
+            averagePoints.push_back({points[i].first,sum/cnt});
+            cnt = 0;
+            sum = 0;
+        }
     }
-    for (int i = 0; i < trueLSF.size() - 1; i ++) {
-        trueLSF[i] = {trueLSF[i].first, (trueLSF[i + 1].second - trueLSF[i].second)/(trueLSF[i+1].first - trueLSF[i].first)};
-    }
-    trueLSF[trueLSF.size() - 1] = {trueLSF[trueLSF.size() - 1].first, trueLSF[trueLSF.size() - 2].second};
-
-    return trueLSF;
+    return averagePoints;
 }
 
+std::vector<std::pair<double,double>> calculateESF(const cv::Mat& roiImage) {
+    std::vector<std::vector<double>> sectionIntense = calculateSectionsIntense(roiImage);
+    std::vector<int> borderIndex = findSectionBorderIndex(sectionIntense);
+    double cosPlane = calculatePlaneCos(borderIndex);
+    std::vector<std::vector<double>> esfPointAbscisses = calculateESFabscisses(borderIndex, cosPlane);
+    std::vector<std::pair<double, double>> ESF;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            ESF.push_back({esfPointAbscisses[i][j],sectionIntense[i][j]});
+        }
+    }
+    ESF = averageByAbscisse(ESF);
+    return ESF;
+}
+
+
+std::vector<std::pair<double, double>> calculateLSF(const cv::Mat& roiImage) {
+    std::vector<std::pair<double, double>> ESF = calculateESF(roiImage);
+    std::vector<std::pair<double, double>>& LSF = ESF;
+    for (int i = 0; i < ESF.size() - 1; i ++) {
+        LSF[i] = {ESF[i].first, (ESF[i + 1].second - ESF[i].second)/(ESF[i+1].first - ESF[i].first)};
+    }
+    LSF[ESF.size() - 1] = {ESF[ESF.size() - 1].first, ESF[ESF.size() - 2].second};
+    return LSF;
+}
 
 int main() {
 
     cv::Mat img = loadImage("/home/maxim/CLionProjects/psfEstimate/testData/synthEdgeImage.png");
     cv::Mat roiImage = splitImageToSections(img);
-    std::vector<std::vector<double>> sectionIntense = calculateSectionsIntense(roiImage);
-    std::vector<int> borderIndex = findSectionBorderIndex(sectionIntense);
-    double cosPlane = calculatePlaneCos(borderIndex);
-    std::vector<std::vector<double>> esfPointOrdinate = calculateESFordinates(borderIndex, cosPlane);
-    std::vector<std::pair<double, double>> LSF = calculateESFderivites(esfPointOrdinate,sectionIntense);
-    for (int i = 0; i < LSF.size(); i++) {
-        std::cout << LSF[i].first << ' ' << LSF[i].second << std::endl;
-    }
+    std::vector<std::pair<double, double>> ESF = calculateESF(roiImage);
+    std::vector<std::pair<double, double>> LSF = calculateLSF(roiImage);
+
     return 0;
 }
