@@ -12,11 +12,30 @@ find_package(OpenGL REQUIRED)
 find_package(glad CONFIG REQUIRED)
 
 
-add_executable(psfEstimate main.cpp bindings/imgui_impl_glfw.h
-        bindings/imgui_impl_glfw.cpp bindings/imgui_impl_opengl3_loader.h bindings/imgui_impl_opengl3.cpp bindings/imgui_impl_opengl3.h)
+add_subdirectory(psfc)
+add_executable(psfEstimate main.cpp
+        bindings/imgui_impl_glfw.h
+        bindings/imgui_impl_glfw.cpp
+        bindings/imgui_impl_opengl3_loader.h
+        bindings/imgui_impl_opengl3.cpp
+        bindings/imgui_impl_opengl3.h
+)
 target_include_directories(psfEstimate PUBLIC bindings)
 
-target_link_libraries(psfEstimate PUBLIC opencv_ml opencv_dnn opencv_core opencv_flann opencv_imgcodecs opencv_highgui glfw OpenGL::GL glad::glad implot::implot imgui::imgui)
+target_link_libraries(psfEstimate PUBLIC
+        opencv_ml
+        opencv_dnn
+        opencv_core
+        opencv_flann
+        opencv_imgcodecs
+        opencv_highgui
+        glfw
+        OpenGL::GL
+        glad::glad
+        implot::implot
+        imgui::imgui
+        psfc
+)
 
 
 
