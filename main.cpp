@@ -70,12 +70,6 @@ bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_wid
     return true;
 }
 
-
-
-
-
-
-
 // Main code
 int main(int, char**)
 {
@@ -161,6 +155,11 @@ int main(int, char**)
     Points ESF = calculateESF(roiImage);
     Points LSF = calculateLSF(roiImage);
 
+    int my_image_width = 0;
+    int my_image_height = 0;
+    GLuint my_image_texture = 0;
+    bool ret = LoadTextureFromFile("/home/maxim/CLionProjects/psfEstimate/testData/synthEdgeImage.png", &my_image_texture, &my_image_width, &my_image_height);
+    IM_ASSERT(ret);
     // Main loop
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
@@ -213,12 +212,6 @@ int main(int, char**)
 
 
         }
-
-        int my_image_width = 0;
-        int my_image_height = 0;
-        GLuint my_image_texture = 0;
-        bool ret = LoadTextureFromFile("/home/maxim/CLionProjects/psfEstimate/testData/synthEdgeImage.png", &my_image_texture, &my_image_width, &my_image_height);
-        IM_ASSERT(ret);
 
         // 2.1 Show simple plot window with ImPlot
         if (show_plot_window) {
