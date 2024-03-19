@@ -1,6 +1,5 @@
 
 #include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <psfc.hpp>
 #include <implot.h>
 #include "imgui.h"
@@ -144,10 +143,8 @@ int main(int, char**)
     //IM_ASSERT(font != nullptr);
 
     // Our state
-    bool show_demo_window = false;
-    bool show_another_window = true;
+    bool show_img_window = true;
     bool show_plot_window = true;
-    bool show_example_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     cv::Mat img = loadImage("/home/maxim/CLionProjects/psfEstimate/testData/synthEdgeImage.png");
@@ -182,46 +179,10 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        if (show_example_window) {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!",&show_example_window);                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-            ImGui::End();
-
-
-
-        }
-
-        // 2.1 Show simple plot window with ImPlot
+        //  Show simple plot window with ImPlot
         if (show_plot_window) {
             ImGui::Begin("Plots", &show_plot_window);
             if (ImPlot::BeginPlot("ESF")) {
-//                for (int i = 0; i < rows; i++) {
-//                    ImPlot::PlotScatter("ESF PLOT", ESF.getAbscisses().data() + rows * i, ESF.getOrdinates().data() + rows * i,rows);
-//                    ImPlot::PlotLine("ESF PLOT", ESF.getAbscisses().data() + rows * i, ESF.getOrdinates().data() + rows * i,rows);
-//                }
-//                ImPlot::PlotScatter("ESF PLOT", ESF.getAbscisses().data(), ESF.getOrdinates().data(),ESF.size());
                 ImPlot::PlotLine("ESF PLOT", ESF.getAbscisses().data(), ESF.getOrdinates().data(),ESF.size());
                 ImPlot::EndPlot();
             }
@@ -234,17 +195,15 @@ int main(int, char**)
                 show_plot_window = false;
             ImGui::End();
         }
-
-
-        // 3. Show another simple window.
-        if (show_another_window)
+        //  Show another simple window.
+        if (show_img_window)
         {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Begin("Another Window", &show_img_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
              ImGui::Text("pointer = %x", my_image_texture);
             ImGui::Text("size = %d x %d", my_image_width, my_image_height);
             ImGui::Image((void*)(intptr_t)my_image_texture, ImVec2(my_image_width, my_image_height));
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
+            if (ImGui::Button("Close"))
+                show_img_window = false;
             if (ImGui::Button("Show Plot"))
                 show_plot_window = true;
             ImGui::End();
