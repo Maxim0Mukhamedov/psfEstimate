@@ -13,7 +13,8 @@ find_package(glad CONFIG REQUIRED)
 
 
 add_subdirectory(psfc)
-add_executable(psfEstimate main.cpp
+add_executable(synthData generateSynthData.cpp)
+add_executable(psfEstimate plots.cpp
         bindings/imgui_impl_glfw.h
         bindings/imgui_impl_glfw.cpp
         bindings/imgui_impl_opengl3_loader.h
@@ -35,6 +36,15 @@ target_link_libraries(psfEstimate PUBLIC
         implot::implot
         imgui::imgui
         psfc
+)
+
+target_link_libraries(synthData PUBLIC
+        opencv_ml
+        opencv_dnn
+        opencv_core
+        opencv_flann
+        opencv_imgcodecs
+        opencv_highgui
 )
 
 
