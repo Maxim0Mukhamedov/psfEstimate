@@ -14,7 +14,7 @@ const int cols = 20;
 const int rows = 40;
 const int colWidth = 3;
 const int rowWidth = 3;
-const int xStart = 185;
+const int xStart = 210;
 const int yStart = 30;
 const double window = 1.5;
 
@@ -32,7 +32,7 @@ int findFirstElementBiggerMean(const std::vector<double>& rowSectionIntenses, co
 
 std::vector<int> findBorderIndexInRow(const std::vector<std::vector<double>> &sectionIntense);
 
-double calculatePlaneCos(const std::vector<int> &borderIndex);
+double calculatePlaneCos(const std::vector<int> &borderIndex, const std::vector<std::vector<double>> &sectionIntense) ;
 
 std::vector<std::vector<double>> calculateESFabscisses(const std::vector<int> &borderIndex, const double &cosPlane);
 

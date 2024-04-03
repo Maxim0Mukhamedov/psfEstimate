@@ -48,16 +48,32 @@ std::vector<int> findBorderIndexInRow(const std::vector<std::vector<double>> &se
     return indexMeanIntense;
 }
 
-// FIXME: Исправить неправильный выбор вершин катетов (не во всех рядах есть граница).
-double calculatePlaneCos(const std::vector<int> &borderIndex) {
-    return rows / std::sqrt((borderIndex[rows - 1] - borderIndex[0]) * (borderIndex[rows - 1] - borderIndex[0]) + rows * rows);
+double calculatePlaneCos(const std::vector<int> &borderIndex, const std::vector<std::vector<double>> &sectionIntense) {
+    int firstRowWithBorder = 0;
+    double lastRowWithBorder = 0;
+    for (int i = borderIndex.size() - 1; i >= 0; i--) {
+        if (sectionIntense[i].begin() + borderIndex[i] != sectionIntense[i].end()) {
+            firstRowWithBorder = i;
+            break;
+        }
+    }
+    for (int i = 0; i < borderIndex.size(); i++) {
+        if ((sectionIntense[i].begin() + borderIndex[i] != sectionIntense[i].end()) && (sectionIntense[i].begin() + borderIndex[i] != sectionIntense[i].begin() + sectionIntense.size())) {
+            lastRowWithBorder = i;
+            break;
+        }
+    }
+    double firstCathetus = std::abs(lastRowWithBorder - firstRowWithBorder);
+    double secondCathetus = std::abs(borderIndex[lastRowWithBorder] - borderIndex[firstRowWithBorder]);
+    double hypotenuse = std::sqrt(firstCathetus*firstCathetus + secondCathetus*secondCathetus);
+    return firstCathetus/hypotenuse;
 }
 
 std::vector<std::vector<double>> calculateESFabscisses(const std::vector<int> &borderIndex, const double &cosPlane) {
     std::vector<std::vector<double>> esfPointOrdinate(rows, std::vector<double>(cols));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            esfPointOrdinate[i][j] = (j - borderIndex[i]) * (cosPlane + cosPlane/(rows*cols)*std::pow(-1,i) * i );
+            esfPointOrdinate[i][j] = borderIndex[i] != cols ? (j - borderIndex[i]) * (cosPlane + cosPlane/(rows*cols)*std::pow(-1,i) * i ) : 0;
         }
     }
     return esfPointOrdinate;
@@ -108,7 +124,7 @@ std::vector<std::pair<double, double>> linearSmoothing(const std::vector<std::pa
 std::vector<std::pair<double,double>> calculateESF(const cv::Mat& roiImage) {
     std::vector<std::vector<double>> sectionIntense = calculateSectionsIntense(roiImage);
     std::vector<int> borderIndex = findBorderIndexInRow(sectionIntense);
-    double cosPlane = calculatePlaneCos(borderIndex);
+    double cosPlane = calculatePlaneCos(borderIndex,sectionIntense);
     std::cout << std::acos(cosPlane) * 180 / CV_PI << '\n';
     std::vector<std::vector<double>> esfPointAbscisses = calculateESFabscisses(borderIndex, cosPlane);
     std::vector<std::pair<double, double>> ESF;
