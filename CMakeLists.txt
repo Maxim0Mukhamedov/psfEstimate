@@ -45,6 +45,7 @@ target_link_libraries(synthData PUBLIC
         opencv_flann
         opencv_imgcodecs
         opencv_highgui
+        psfc
 )
 
 
