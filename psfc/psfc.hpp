@@ -10,17 +10,19 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-const int cols = 20;
+const int cols = 40;
 const int rows = 40;
 const int colWidth = 3;
 const int rowWidth = 3;
-const int xStart = 210;
-const int yStart = 30;
-const double window = 1.5;
+const int xStart = 250;
+const int yStart = 80;
+
 
 namespace psfc {
-    const double W = window;
+    const double W = 1.5;
 }
+
+std::pair<std::vector<double>, std::vector<double>> vpTopv(const std::vector<std::pair<double,double>>& v);
 
 cv::Mat loadImage(std::string relative_path);
 
@@ -38,14 +40,16 @@ std::vector<std::vector<double>> calculateESFabscisses(const std::vector<int> &b
 
 double biSquare(double x);
 
-std::vector<std::pair<double, double>> calculateWindow(const std::vector<std::pair<double, double>>& ESF, double x);
+std::vector<std::pair<double, double>> calculateWindow(const std::vector<std::pair<double, double>>& ESF, double x, double window);
 
 double calculateSmoothingKernel(const std::vector<std::pair<double, double>>& point, double x, double window);
 
-std::vector<std::pair<double, double>> linearSmoothing(const std::vector<std::pair<double, double>>& ESF, double step);
+std::vector<std::pair<double, double>> linearSmoothing(const std::vector<std::pair<double, double>>& ESF, double step, double window);
 
 std::vector<std::pair<double,double>> calculateESF(const cv::Mat& roiImage);
 
 std::vector<std::pair<double,double>> calculateLSFfromESF(std::vector<std::pair<double, double>> ESF);
 
-std::pair<std::vector<double>, std::vector<double>> vpTopv(const std::vector<std::pair<double,double>>& v);
+std::vector<std::pair<double,double>> calculateMTFfromLSF(std::vector<std::pair<double,double>> LSF);
+
+

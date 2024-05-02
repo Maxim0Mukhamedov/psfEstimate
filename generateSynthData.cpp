@@ -8,7 +8,7 @@
 #include <psfc.hpp>
 
 cv::Mat createTestImage(const int& width, const int& height, double angle) {
-    cv::Mat img(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+    cv::Mat img(height, width, CV_8UC3, cv::Scalar(128, 128, 128));
     cv::Scalar edgeColor(0,0,0);
     angle = angle/180.0f * CV_PI;
     double tgAngle = std::tan(angle);
@@ -19,7 +19,8 @@ cv::Mat createTestImage(const int& width, const int& height, double angle) {
 }
 
 int main() {
-    cv::Mat img = createTestImage(500,500,10);
+    cv::Mat img = createTestImage(500,500,-20);
+    cv::GaussianBlur(img,img,cv::Size(5,5),10);
     cv::imwrite("/home/maxim/CLionProjects/psfEstimate/testData/psfTestImage.png",img);
     cv::imshow("PSF Test Image", img);
     cv::waitKey(0);

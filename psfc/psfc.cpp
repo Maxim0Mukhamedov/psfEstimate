@@ -1,5 +1,14 @@
 #include "psfc.hpp"
 
+std::pair<std::vector<double>, std::vector<double>> vpTopv(const std::vector<std::pair<double,double>>& v) {
+    std::pair<std::vector<double>, std::vector<double>> result;
+    for (auto i : v) {
+        result.first.push_back(i.first);
+        result.second.push_back(i.second);
+    }
+    return result;
+}
+
 cv::Mat loadImage(std::string relative_path) {
     std::string path = cv::samples::findFile(relative_path);
     cv::Mat img = cv::imread(path, cv::IMREAD_COLOR);
@@ -87,7 +96,7 @@ double biSquare(double x) {
     }
 }
 
-std::vector<std::pair<double, double>> calculateWindow(const std::vector<std::pair<double, double>>& ESF, double x) {
+std::vector<std::pair<double, double>> calculateWindow(const std::vector<std::pair<double, double>>& ESF, double x, double window) {
     std::vector<std::pair<double, double>> wp;
     for (int i = 0; i < ESF.size(); i++) {
         if ( (x - window) < ESF[i].first && ESF[i].first < (x + window)) {
@@ -107,10 +116,10 @@ double calculateSmoothingKernel(const std::vector<std::pair<double, double>>& po
     return sum;
 }
 
-std::vector<std::pair<double, double>> linearSmoothing(const std::vector<std::pair<double, double>>& ESF, double step) {
+std::vector<std::pair<double, double>> linearSmoothing(const std::vector<std::pair<double, double>>& ESF, double step, double window) {
     std::vector<std::pair<double, double>> smoothedESF;
     for (double x = ESF[0].first; x < ESF[ESF.size() - 1].first; x += step) {
-        std::vector<std::pair<double, double>> pointsInWindow = calculateWindow(ESF, x);
+        std::vector<std::pair<double, double>> pointsInWindow = calculateWindow(ESF, x, window);
         double Wj = calculateSmoothingKernel(pointsInWindow, x, window);
         double sum = 0;
         for (int i = 0; i < pointsInWindow.size(); i++) {
@@ -130,15 +139,15 @@ std::vector<std::pair<double,double>> calculateESF(const cv::Mat& roiImage) {
     std::vector<std::pair<double, double>> ESF;
     int rowsInSample = rows/4;
     for (int i = 0; i < rows*cols; i ++) {
-        for(int j = 0; j < rowsInSample; j++) {
+        for (int j = 0; j < rowsInSample; j++) {
             int sampleRow = std::rand() % rows;
-            for(int k = 0; k < cols; k++) {
-                ESF.push_back({esfPointAbscisses[sampleRow][k],sectionIntense[sampleRow][k]});
+            for (int k = 0; k < cols; k++) {
+                ESF.push_back({esfPointAbscisses[sampleRow][k], sectionIntense[sampleRow][k]});
             }
         }
-        std::sort(ESF.begin(), ESF.end());
-        ESF = linearSmoothing(ESF, 0.1);
     }
+    std::sort(ESF.begin(), ESF.end());
+    ESF = linearSmoothing(ESF, 0.1,1.5);
     return ESF;
 }
 
@@ -149,15 +158,32 @@ std::vector<std::pair<double,double>> calculateLSFfromESF(std::vector<std::pair<
         LSF[i] = {ESF[i].first, (ESF[i + 1].second - ESF[i].second)/(ESF[i+1].first - ESF[i].first)};
     }
     LSF[ESF.size() - 1] = LSF[ESF.size() - 2];
-    LSF = linearSmoothing(LSF,0.1);
+    LSF = linearSmoothing(LSF,0.1,1.5);
     return LSF;
 }
 
-std::pair<std::vector<double>, std::vector<double>> vpTopv(const std::vector<std::pair<double,double>>& v) {
-    std::pair<std::vector<double>, std::vector<double>> result;
-    for (auto i : v) {
-        result.first.push_back(i.first);
-        result.second.push_back(i.second);
+std::vector<std::pair<double,double>> calculateMTFfromLSF(std::vector<std::pair<double,double>> LSF) {
+    std::vector<std::pair<double,double>> MTF;
+    auto tmp = vpTopv(LSF);
+    std::vector<double> abscisses = tmp.first;
+    std::vector<double> ordinate = tmp.second;
+
+//    cv::dft(ordinate,ordinate, cv::DFT_COMPLEX_OUTPUT);
+    cv::dft(ordinate,ordinate);
+    cv::normalize(ordinate,ordinate,1,0,cv::NORM_INF);
+    cv::normalize(abscisses, abscisses,1,0,cv::NORM_MINMAX);
+
+    for (double& i : ordinate) {
+        i = std::abs(i);
     }
-    return result;
+//
+//    ordinate = normalizeToZeroOne(ordinate);
+//    abscisses = normalizeToZeroOne(abscisses);
+
+    for (int i = 0; i < ordinate.size(); i++) {
+        MTF.push_back({abscisses[i], ordinate[i]});
+    }
+    MTF = linearSmoothing(MTF,0.02,0.005);
+    return MTF;
 }
+

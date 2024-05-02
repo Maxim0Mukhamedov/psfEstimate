@@ -147,12 +147,14 @@ int main(int, char**)
     bool show_plot_window = true;
     bool show_ROI_section = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    const char imgPath[] = "/home/maxim/CLionProjects/psfEstimate/testData/psfTestImage.png";
+    const char imgPath[] = "/home/maxim/CLionProjects/psfEstimate/testData/pfTestImage.png";
     cv::Mat img = loadImage(imgPath);
     cv::Mat roiImage = splitImageToSections(img);
     std::vector<std::pair<double,double>> rawESF = calculateESF(roiImage);
+    std::vector<std::pair<double,double>> rawLSF = calculateLSFfromESF(rawESF);
     std::pair<std::vector<double>, std::vector<double>> ESF = vpTopv(rawESF);
     std::pair<std::vector<double>, std::vector<double>> LSF = vpTopv(calculateLSFfromESF(rawESF));
+    std::pair<std::vector<double>, std::vector<double>> MTF = vpTopv(calculateMTFfromLSF(rawLSF));
 
     int my_image_width = 0;
     int my_image_height = 0;
@@ -193,6 +195,12 @@ int main(int, char**)
                 ImPlot::PlotLine("LSF PLOT", LSF.first.data(), LSF.second.data(), LSF.first.size());
                 ImPlot::EndPlot();
             }
+
+            if (ImPlot::BeginPlot("MTF")) {
+                ImPlot::PlotLine("MTF PLOT", MTF.first.data(), MTF.second.data(), MTF.first.size());
+                ImPlot::EndPlot();
+            }
+//            ImGui::Text("PFS")
             if (ImGui::Button("Close"))
                 show_plot_window = false;
             ImGui::End();
