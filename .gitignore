@@ -1,3 +1,5 @@
+# TestImage
+psf*.*
 # CLion IDE specific files
 .idea/
 cmake-build-*
