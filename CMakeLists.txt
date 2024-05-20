@@ -21,6 +21,14 @@ add_executable(psfEstimate plots.cpp
         bindings/imgui_impl_opengl3.cpp
         bindings/imgui_impl_opengl3.h
 )
+add_executable(generator generator.cpp
+        bindings/imgui_impl_glfw.h
+        bindings/imgui_impl_glfw.cpp
+        bindings/imgui_impl_opengl3_loader.h
+        bindings/imgui_impl_opengl3.cpp
+        bindings/imgui_impl_opengl3.h
+)
+
 target_include_directories(psfEstimate PUBLIC bindings)
 
 target_link_libraries(psfEstimate PUBLIC
@@ -48,5 +56,20 @@ target_link_libraries(synthData PUBLIC
         psfc
 )
 
+target_include_directories(generator PUBLIC bindings)
+target_link_libraries(generator PUBLIC
+        opencv_ml
+        opencv_dnn
+        opencv_core
+        opencv_flann
+        opencv_imgcodecs
+        opencv_highgui
+        glfw
+        OpenGL::GL
+        glad::glad
+        implot::implot
+        imgui::imgui
+        psfc
+)
 
 
