@@ -146,16 +146,22 @@ int main(int, char**)
     bool show_img_window = true;
     bool show_plot_window = true;
     bool show_ROI_section = false;
+    bool show_info = true;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    const char imgPath[] = "/home/maxim/CLionProjects/psfEstimate/testData/pfTestImage.png";
+    char imgPath[] = "/home/maxim/CLionProjects/psfEstimate/testData/pfTestImage.png";
     cv::Mat img = loadImage(imgPath);
-    cv::Mat roiImage = splitImageToSections(img);
-    std::vector<std::pair<double,double>> rawESF = calculateESF(roiImage);
-    std::vector<std::pair<double,double>> rawLSF = calculateLSFfromESF(rawESF);
+    Roi mainRoi(40,40,3,3,250,80);
+    cv::Mat roiImage = mainRoi.splitImageToSections(img);
+    std::vector<std::pair<double,double>> rawESF = mainRoi.calculateESF(roiImage);
+    std::vector<std::pair<double,double>> rawLSF = mainRoi.calculateLSFfromESF(rawESF);
     std::pair<std::vector<double>, std::vector<double>> ESF = vpTopv(rawESF);
-    std::pair<std::vector<double>, std::vector<double>> LSF = vpTopv(calculateLSFfromESF(rawESF));
-    std::pair<std::vector<double>, std::vector<double>> MTF = vpTopv(calculateMTFfromLSF(rawLSF));
+    std::pair<std::vector<double>, std::vector<double>> LSF = vpTopv(rawLSF);
+    std::pair<std::vector<double>, std::vector<double>> MTF = vpTopv(mainRoi.calculateMTFfromLSF(rawLSF));
+    double fwhm = mainRoi.calculateFWHM(rawLSF);
+    double fwtm = mainRoi.calculateFWTM(rawLSF);
+    std::vector<std::pair<double,double>> mtfThreshold = mainRoi.calculateMTFthreshold(MTF);
 
+    bool reCalcPlot = false;
     int my_image_width = 0;
     int my_image_height = 0;
     GLuint my_image_texture = 0;
@@ -186,7 +192,7 @@ int main(int, char**)
         //  Show simple plot window with ImPlot
         if (show_plot_window) {
             ImGui::Begin("Plots", &show_plot_window);
-            ImGui::Text("Window width = %f", psfc::W);
+
             if (ImPlot::BeginPlot("ESF")) {
                 ImPlot::PlotLine("ESF PLOT", ESF.first.data(), ESF.second.data(),ESF.first.size());
                 ImPlot::EndPlot();
@@ -200,18 +206,41 @@ int main(int, char**)
                 ImPlot::PlotLine("MTF PLOT", MTF.first.data(), MTF.second.data(), MTF.first.size());
                 ImPlot::EndPlot();
             }
-//            ImGui::Text("PFS")
-            if (ImGui::Button("Close"))
-                show_plot_window = false;
+
+            if (reCalcPlot) {
+                reCalcPlot = false;
+
+                roiImage = mainRoi.splitImageToSections(img);
+                rawESF = mainRoi.calculateESF(roiImage);
+                rawLSF = mainRoi.calculateLSFfromESF(rawESF);
+                ESF = vpTopv(rawESF);
+                LSF = vpTopv(rawLSF);
+                MTF = vpTopv(mainRoi.calculateMTFfromLSF(rawLSF));
+                fwhm = mainRoi.calculateFWHM(rawLSF);
+                fwtm = mainRoi.calculateFWTM(rawLSF);
+                mtfThreshold = mainRoi.calculateMTFthreshold(MTF);
+            }
             ImGui::End();
         }
         //  Show another simple window.
         if (show_img_window)
         {
-            ImGui::Begin("Another Window", &show_img_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-             ImGui::Text("pointer = %x", my_image_texture);
-            ImGui::Text("size = %d x %d", my_image_width, my_image_height);
-            ImGui::Text("ROI size = %d x %d", cols * colWidth, rowWidth * rows);
+            ImGui::Begin("Image Window", &show_img_window);// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::InputText("path",imgPath,100);
+            if (ImGui::Button("Sumbit path")) {
+                img = loadImage(imgPath);
+                ret = LoadTextureFromFile(imgPath, &my_image_texture, &my_image_width, &my_image_height);
+            }
+
+            ImGui::InputInt("X", &mainRoi.xStart);
+            ImGui::InputInt("Y", &mainRoi.yStart);
+            ImGui::InputInt("Group Width", &mainRoi.colWidth);
+            ImGui::InputInt("Group Heigth", &mainRoi.rowWidth);
+            ImGui::InputInt("Cols", &mainRoi.cols);
+            ImGui::InputInt("Rows", &mainRoi.rows);
+            if (ImGui::Button("Sumbit")) {
+                 reCalcPlot = true;
+            }
             if (ImGui::Button("Show ROI section")) {
                 show_ROI_section ^= 1;
             }
@@ -219,22 +248,36 @@ int main(int, char**)
             const ImVec2 cur = ImGui::GetCursorScreenPos();
             drawList->AddImage((void*)(intptr_t)my_image_texture, cur, ImVec2(cur.x + my_image_width, cur.y + my_image_height));
             static ImU32 colBord = ImColor(ImVec4(4.0f, 4.0f, 0.1f, 1.0f));
-            drawList->AddRect(ImVec2(cur.x + xStart, cur.y + yStart),ImVec2(cur.x + xStart + cols * colWidth, cur.y + yStart + rows*rowWidth),colBord, 0.0f, ImDrawFlags_RoundCornersAll,1.5f);
+            drawList->AddRect(ImVec2(cur.x + mainRoi.xStart, cur.y + mainRoi.yStart),ImVec2(cur.x + mainRoi.xStart + mainRoi.cols * mainRoi.colWidth, cur.y + mainRoi.yStart + mainRoi.rows* mainRoi.rowWidth),colBord, 0.0f, ImDrawFlags_RoundCornersAll,1.5f);
             if (show_ROI_section) {
-                for (int i = 0; i < cols; i++) {
-                    drawList->AddLine(ImVec2(cur.x + xStart + colWidth * i, cur.y + yStart),
-                                      ImVec2(cur.x + xStart + colWidth * i, cur.y + yStart + rows * rowWidth), colBord,
+                for (int i = 0; i < mainRoi.cols; i++) {
+                    drawList->AddLine(ImVec2(cur.x + mainRoi.xStart + mainRoi.colWidth * i, cur.y + mainRoi.yStart),
+                                      ImVec2(cur.x + mainRoi.xStart + mainRoi.colWidth * i, cur.y + mainRoi.yStart + mainRoi.rows * mainRoi.rowWidth), colBord,
                                       0.5f);
                 }
-                for (int i = 0; i < rows; i++) {
-                    drawList->AddLine(ImVec2(cur.x + xStart, cur.y + yStart + rowWidth * i),
-                                      ImVec2(cur.x + xStart + cols * colWidth, cur.y + yStart + rowWidth * i), colBord,
+                for (int i = 0; i < mainRoi.rows; i++) {
+                    drawList->AddLine(ImVec2(cur.x + mainRoi.xStart, cur.y + mainRoi.yStart + mainRoi.rowWidth * i),
+                                      ImVec2(cur.x + mainRoi.xStart + mainRoi.cols * mainRoi.colWidth, cur.y + mainRoi.yStart + mainRoi.rowWidth * i), colBord,
                                       0.5f);
                 }
+            }
+             if (ImGui::Button("Show Plots")) {
+                show_plot_window ^= 1;
             }
             ImGui::End();
         }
 
+        if (show_info) {
+            ImGui::Begin("Info Window", &show_info);
+            ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+            ImGui::Text("ROI size = %d x %d", mainRoi.cols * mainRoi.colWidth, mainRoi.rowWidth * mainRoi.rows);
+            ImGui::Text("FWHM = %f",fwhm);
+            ImGui::Text("FWTM = %f", fwtm);
+            for (auto i : mtfThreshold) {
+                ImGui::Text("MTF Threshold(%f) = %f",i.first, i.second);
+            }
+            ImGui::End();
+        }
         // Rendering
         ImGui::Render();
         int display_w, display_h;

@@ -21,6 +21,12 @@ cv::Mat createTestImage(const int& width, const int& height, double angle) {
 int main() {
     cv::Mat img = createTestImage(500,500,-20);
     cv::GaussianBlur(img,img,cv::Size(5,5),10);
+    cv::Scalar m{50,50,50};
+    cv::Scalar s{50,50,50};
+    cv::Mat noise;
+    img.copyTo(noise);
+    cv::randn(noise,m,s);
+    cv::add(img,noise,img);
     cv::imwrite("/home/maxim/CLionProjects/psfEstimate/testData/psfTestImage.png",img);
     cv::imshow("PSF Test Image", img);
     cv::waitKey(0);
